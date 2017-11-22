@@ -27,8 +27,9 @@ word K[80] = {
 	0x431d67c49c100d4c, 0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
 };
 
-void setBlock(byte* mess, int messLen, word* block) {	// Convert message into blocks
-	int len = ((messLen + 16) / 128 + 1) * 16;
+void setBlock(byte* mess, int messLen, word* block, int* numBlock) {	// Convert message into blocks
+	*numBlock = (messLen + 16) / 128 + 1;
+	int len = *numBlock * 16;
 	int i, j;
 	int isEnd = 0;
 	for(i = 0; i < len - 2; i++) {
@@ -109,14 +110,15 @@ void implement(word* data, int numBlock, word* out) {	// Implement Hash Algorith
 }
 
 int main() {
-	//byte mess[] = "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu";
+	byte mess[] = "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu";
 	//byte mess[] = "abc";
 	//byte mess[] = "John_MacTavish_TaskForce141";
-	byte mess[] = "sghasklfkasgsamgjsjgsksgkhaslfasaajskvadagfafkanfakdahvfajdabkfaskjvasjasfgahgdjsbgsanjfkjasganfsasgasnvasdkfkjagakvnsdmvsghsjafbsdfaslfjaaljdmakslganlhrlahfalkfjalgansjgnafhaklfjnasgkasgahfnasfbajkfgakghashnakgjafakghakjghakfagsfkag";
+	//byte mess[] = "sghasklfkasgsamgjsjgsksgkhaslfasaajskvadagfafkanfakdahvfajdabkfaskjvasjasfgahgdjsbgsanjfkjasganfsasgasnvasdkfkjagakvnsdmvsghsjafbsdfaslfjaaljdmakslganlhrlahfalkfjalgansjgnafhaklfjnasgkasgahfnasfbajkfgakghashnakgjafakghakjghakfagsfkag";
 	word data[32];
-	setBlock(mess, sizeof(mess) - 1, data);
+	int numBlock;
+	setBlock(mess, sizeof(mess) - 1, data, &numBlock);
 	word res[8];
-	implement(data, sizeof(data) / 128, res);
+	implement(data, numBlock, res);
 	int i;
 	printf("Hash value:\n");
 	for(i = 0; i < 8; i++)

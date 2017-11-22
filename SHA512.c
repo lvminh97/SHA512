@@ -98,13 +98,13 @@ void implement(word* data, int numBlock, word* out) {	// Implement Hash Algorith
 		else
 			copyData(res, 8, init);
 		int i;
-		round(0,init,W,tmp);
-		for(i=1; i<80; i++) {
-			round(i,tmp,W,res);
+		round(0, init, W, tmp);
+		for(i = 1; i < 80; i++) {
+			round(i, tmp, W, res);
 			copyData(res, 8, tmp);
 		}
-		for(i=0; i<8; i++)
-			res[i]=init[i]+res[i];
+		for(i = 0; i < 8; i++)
+			res[i] = init[i] + res[i];
 	}
 	copyData(res, 8, out);
 }

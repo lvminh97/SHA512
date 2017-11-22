@@ -114,7 +114,7 @@ int main() {
 	//byte mess[] = "abc";
 	//byte mess[] = "John_MacTavish_TaskForce141";
 	//byte mess[] = "sghasklfkasgsamgjsjgsksgkhaslfasaajskvadagfafkanfakdahvfajdabkfaskjvasjasfgahgdjsbgsanjfkjasganfsasgasnvasdkfkjagakvnsdmvsghsjafbsdfaslfjaaljdmakslganlhrlahfalkfjalgansjgnafhaklfjnasgkasgahfnasfbajkfgakghashnakgjafakghakjghakfagsfkag";
-	word data[32];
+	word data[64];
 	int numBlock;
 	setBlock(mess, sizeof(mess) - 1, data, &numBlock);
 	word res[8];

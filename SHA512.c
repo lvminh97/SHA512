@@ -1,13 +1,14 @@
-#include<stdio.h>
+#include <stdio.h>
+#include <string.h>
 
 typedef unsigned long long word;
 typedef unsigned char byte;
-
+// Initialization vector
 word IV[8] = {
 	0x6a09e667f3bcc908, 0xbb67ae8584caa73b, 0x3c6ef372fe94f82b, 0xa54ff53a5f1d36f1,
 	0x510e527fade682d1, 0x9b05688c2b3e6c1f, 0x1f83d9abfb41bd6b, 0x5be0cd19137e2179
 };
-
+// Constant words
 word K[80] = {
 	0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc, 0x3956c25bf348b538,
 	0x59f111f1b605d019, 0x923f82a4af194f9b, 0xab1c5ed5da6d8118, 0xd807aa98a3030242, 0x12835b0145706fbe,
@@ -26,8 +27,19 @@ word K[80] = {
 	0x113f9804bef90dae, 0x1b710b35131c471b, 0x28db77f523047d84, 0x32caab7b40c72493, 0x3c9ebe0a15c9bebc,
 	0x431d67c49c100d4c, 0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
 };
-
-void setBlock(byte* mess, int messLen, word* block, int* numBlock) {	// Convert message into blocks
+// Read data from text file
+void readFromFile(char* filePath, char* data){
+	FILE *file = fopen(filePath, "rt");
+	strcpy(data, "");
+	char tmp[1000];
+	while(!feof(file)){
+		fgets(tmp, 1000, file);
+		strcat(data, tmp);
+	}
+	fclose(file);
+}
+// Add padding and length to get multiple of 1024 bits
+void setBlock(byte* mess, int messLen, word* block, int* numBlock) {	
 	*numBlock = (messLen + 16) / 128 + 1;
 	int len = *numBlock * 16;
 	int i, j;
@@ -50,21 +62,21 @@ void setBlock(byte* mess, int messLen, word* block, int* numBlock) {	// Convert 
 	block[len - 2] = 0;
 	block[len - 1] = (word) messLen * 8;
 }
-
-void copyData(word* in, int len, word* out) {			// Copy data from array 'in' to array 'out'
+// Copy data from array 'in' to array 'out'
+void copyData(word* in, int len, word* out) {			
 	int i;
 	for(i = 0; i < len; i++)
 		out[i] = in[i];
 }
-
-word rotR(word in, int step) {							// Right rotation by 'n' bits
+// Right rotation by 'n' bits
+word rotR(word in, int step) {							
 	int i;
 	for(i = 0; i < step; i++)
 		in = (in >> 1) + ((in & 1) << 63);
 	return in;
 }
-
-void generateW(word* data, int startPos, word* W) {		// Generate array W[i]: i = 0:79
+// Generate words W[i]: i = 0:7
+void wordExpansion(word* data, int startPos, word* W) {		
 	int i;
 	for(i = 0; i < 16; i++) W[i] = data[i + startPos];
 	for(i = 16; i < 80; i++) {
@@ -72,8 +84,8 @@ void generateW(word* data, int startPos, word* W) {		// Generate array W[i]: i =
 		       (rotR(W[i - 15], 1) ^ rotR(W[i - 15], 8) ^ (W[i - 15] >> 7)) + W[i - 16];
 	}
 }
-
-void round(int id, word* in, word* W, word* out) {		// 1 round
+// 1 round
+void round(int id, word* in, word W, word* out) {	
 	int i;
 	for(i = 1; i < 8; i++) {
 		if(i != 4) {
@@ -81,47 +93,52 @@ void round(int id, word* in, word* W, word* out) {		// 1 round
 		}
 	}
 	word t1 = ((in[0] & in[1]) ^ (in[1] & in[2]) ^ (in[2] & in[0])) + (rotR(in[0], 28) ^ rotR(in[0], 34) ^ rotR(in[0], 39));
-	word t2 = ((in[4] & in[5]) ^ ((~in[4]) & in[6])) + (rotR(in[4], 14) ^ rotR(in[4], 18) ^ rotR(in[4], 41)) + W[id] + K[id] + in[7];
+	word t2 = ((in[4] & in[5]) ^ ((~in[4]) & in[6])) + (rotR(in[4], 14) ^ rotR(in[4], 18) ^ rotR(in[4], 41)) + W + K[id] + in[7];
 	out[4] = in[3] + t2;
 	out[0] = t1 + t2;
 }
-
-void implement(word* data, int numBlock, word* out) {	// Implement Hash Algorithm
+// Compression function
+void compressionFunc(word* init, word* W, word* res){	
+	int i;
+	round(0, init, W[0], res);
+	for(i = 1; i < 80; i++){
+		word tmp[8];
+		round(i, res, W[i], tmp);
+		copyData(tmp, 8, res);
+	}
+	for(i = 0; i < 8; i++){
+		res[i] = res[i] + init[i];
+	}
+}
+// Implement Hash Algorithm
+void implement(word* data, int numBlock, word* out) {	
 	int block;
-	word tmp[8], res[8];
+	word res[8];
 	for(block = 0; block < numBlock; block++) {
 		word W[80];
-		generateW(data, 16 * block , W);
+		wordExpansion(data, 16 * block , W);
 		word init[8];
 		if(block == 0)
 			copyData(IV, 8, init);
 		else
 			copyData(res, 8, init);
-		int i;
-		round(0, init, W, tmp);
-		for(i = 1; i < 80; i++) {
-			round(i, tmp, W, res);
-			copyData(res, 8, tmp);
-		}
-		for(i = 0; i < 8; i++)
-			res[i] = init[i] + res[i];
+		compressionFunc(init, W, res);
 	}
 	copyData(res, 8, out);
 }
-
+// Main program
 int main() {
-	byte mess[] = "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu";
-	//byte mess[] = "abc";
-	//byte mess[] = "John_MacTavish_TaskForce141";
-	//byte mess[] = "sghasklfkasgsamgjsjgsksgkhaslfasaajskvadagfafkanfakdahvfajdabkfaskjvasjasfgahgdjsbgsanjfkjasganfsasgasnvasdkfkjagakvnsdmvsghsjafbsdfaslfjaaljdmakslganlhrlahfalkfjalgansjgnafhaklfjnasgkasgahfnasfbajkfgakghashnakgjafakghakjghakfagsfkag";
-	word data[64];
+	byte mess[100000];
+	readFromFile("D:/testLTMM/JuliusCaesar.txt", mess);
+	word data[2000];
 	int numBlock;
-	setBlock(mess, sizeof(mess) - 1, data, &numBlock);
+	setBlock(mess, strlen(mess), data, &numBlock);
 	word res[8];
 	implement(data, numBlock, res);
 	int i;
 	printf("Hash value:\n");
-	for(i = 0; i < 8; i++)
-		printf("%016llX\n", res[i]);
+	for(i = 0; i < 8; i++){
+		printf("%016llX",res[i]);	
+	}
 	return 0;
 }
